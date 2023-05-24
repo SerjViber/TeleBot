@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Title</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,500&amp;subset=cyrillic" rel="stylesheet">
+    <link href="popup.style.css" rel="stylesheet">
+</head>
+<body>
+    <form id="messageForm">
+        <div class="flex">
+            <button type="button" class="btn btn-default" data-modal="modal_1">Показать popup</button>
+        </div>
+        <div class="overlay" data-close=""></div>
+
+        <div id="modal_1" class="dlg-modal dlg-modal-fade">
+            <span class="closer" data-close=""></span>
+                <div>
+                    <label for="_name_">Вопрос</label>
+                    <input type="text" name="_name_" id="_name_" />
+                </div>
+                <div>            
+                    <label for="_message_">Ответ</label>
+                    <input type="text" name="_message_" id="_message_" />
+                </div>
+                <div>
+                    <input type="submit" value="send" />
+                </div>
+        </div>
+    </form>
+
+    <div id="chat"></div>
+
+    <script type="module">
+        const chatEl = document.getElementById("chat");
+        const ws = new WebSocket("ws://127.0.0.1:3000"); // по имени домена и по порту за FW, ws (не http) - протокол WebSocket!!!
+        let mStatus = false;
+
+        //===================================
+        //сообщение ОТ сервера
+        ws.onmessage = (message) => {
+            const messages = JSON.parse(message.data);
+            messages.forEach((val) => {
+                const messageEl = document.createElement('div');
+		        document.getElementById("_name_").value = val._name_;
+		        document.getElementById("_message_").value = val._message_;
+                //messageEl.appendChild(document.createTextNode(`${val._name_}: ${val._message_}`));
+                //chat.appendChild(messageEl);
+            })
+            
+        //=================================== открываем окно
+            const mOpen = document.querySelectorAll('[data-modal]');
+            if (mOpen.length == 0) return;
+            const overlay = document.querySelector('.overlay'),
+  		          modals = document.querySelectorAll('.dlg-modal'),
+		          mClose = document.querySelectorAll('[data-close]');
+
+			let modalId = mOpen[0].dataset.modal,
+				modal = document.getElementById(modalId);
+			    //modalShow(modal);
+                overlay.classList.remove('fadeOut');
+		        overlay.classList.add('fadeIn');
+
+		    // определяем тип анимации появления всплывающего окна
+		    // убираем и добавляем классы, соответствующие типу анимации
+		    if (typeAnimate === 'fade') {
+			    modal.classList.remove('fadeOut');
+			    modal.classList.add('fadeIn');
+		    } else if (typeAnimate === 'slide') {
+			    modal.classList.remove('slideOutUp');
+			    modal.classList.add('slideInDown');
+		    }
+		    // выставляем флаг, обозначающий, что всплывающее окно открыто
+		    mStatus = true;
+        }
+
+        //===================================
+        // сообщение В сервер
+        const send = (event) => {
+            event.preventDefault();
+            const _name_ = document.getElementById("_name_").value;
+            const _message_ = document.getElementById("_message_").value;
+            ws.send(JSON.stringify({
+                _name_, _message_
+            }))
+
+//======================================= закрываем окно
+
+            const overlay = document.querySelector('.overlay'),
+  		          modals = document.querySelectorAll('.dlg-modal'),
+		          mClose = document.querySelectorAll('[data-close]');
+
+            for (let modal of modals) {
+				if (typeAnimate == 'fade') {
+					modal.classList.remove('fadeIn');
+					modal.classList.add('fadeOut');
+				} else if (typeAnimate == 'slide') {
+					modal.classList.remove('slideInDown');
+					modal.classList.add('slideOutUp');
+				}
+			}
+
+			// закрываем overlay
+			overlay.classList.remove('fadeIn');
+			overlay.classList.add('fadeOut');
+			// сбрасываем флаг, устанавливая его значение в 'false'
+			// это значение указывает нам, что на странице нет открытых
+			// всплывающих окон
+			mStatus = false;
+        } 
+//=======================================
+        // return false;
+        const formEl = document.getElementById("messageForm");
+        formEl.addEventListener("submit", send);
+    </script>
+    <script>const typeAnimate = 'fade';</script>
+<!--    <script src="popup.function.js"></script> -->
+</body>
+</html>
